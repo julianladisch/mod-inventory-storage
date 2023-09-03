@@ -1,4 +1,4 @@
-name: k6 put holding
+name: k6 put holding sql
 on:
   workflow_dispatch:
 jobs:
