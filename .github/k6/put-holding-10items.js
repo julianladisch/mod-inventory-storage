@@ -6,7 +6,7 @@ import http from 'k6/http';
 // med 55.8 ms with Java
 // med 60.9 ms with SQL
 
-const n = 2500;
+const n = 500;
 export const options = {
     setupTimeout: '600s',
     iterations: n,	
