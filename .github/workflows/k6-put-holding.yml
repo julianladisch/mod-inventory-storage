@@ -14,8 +14,8 @@ jobs:
         java-version: '17'
         cache: maven
     - run: mvn clean install -DskipTests
-    - run: docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:12-alpine
-    - run: sleep 2
+    - run: docker run -d -e POSTGRES_PASSWORD=postgres -p 5432:5432 docker.io/postgres:12-alpine
+    - run: docker run -d -p9092:9092 -p29092:29092 docker.io/confluentinc/confluent-local
     - run: >
         PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres postgres
         -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
@@ -26,6 +26,8 @@ jobs:
         export DB_USERNAME=folio
         export DB_PASSWORD=folio123
         export DB_DATABASE=postgres
+        export KAFKA_HOST=localhost
+        export KAFKA_PORT=9092
         ( java -jar -Dstorage=postgres target/mod-inventory-storage-fat.jar > log ) &
     - run: curl --retry 6 --retry-connrefused -sS http://localhost:8081/admin/health
     - run: 'curl -sS -D -
