@@ -8,6 +8,7 @@ import http from 'k6/http';
 
 const n = 2500;
 export const options = {
+    hosts: { 'localhost' : '172.17.0.1' },	
     setupTimeout: '600s',	
     iterations: n,
     thresholds: {
