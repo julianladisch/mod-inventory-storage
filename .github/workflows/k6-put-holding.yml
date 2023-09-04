@@ -16,7 +16,7 @@ jobs:
     - run: mvn clean install -DskipTests
     - run: docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:12-alpine
     - run: >
-        psql -p 5432 -U postgres postgres
+        psql -h localhost -p 5432 -U postgres postgres
         -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
         -c "CREATE DATABASE folio WITH OWNER folio"
     - run: |
@@ -39,5 +39,7 @@ jobs:
     - run: 'cat out | grep "^Location: " | tr : = | tr -d " \n\r" >> $GITHUB_ENV'
     - run: echo $Location
     - run: "curl -sS -D - -H 'x-okapi-tenant: diku' http://localhost:8081${Location}?wait=200000"
-    - run: k6 run .github/k6/put-holding.js
+    - uses: grafana/k6-action@v0.3.0
+      with:
+        filename: .github/k6/put-holding.js
 
