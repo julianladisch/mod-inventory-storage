@@ -8,6 +8,6 @@ jobs:
     - run: docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:12-alpine
     - run: sleep 2
     - run: >
-        PGPASSWD=postgres psql -h localhost -p 5432 -U postgres postgres
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres postgres
         -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
         -c "CREATE DATABASE folio WITH OWNER folio"
