@@ -42,7 +42,29 @@ jobs:
     - run: 'cat out | grep "^Location: " | tr : = | tr -d " \n\r" >> $GITHUB_ENV'
     - run: echo $Location
     - run: "curl -sS -D - -H 'x-okapi-tenant: diku' http://localhost:8081${Location}?wait=200000"
+    - run: lscpu
+    - uses: grafana/k6-action@v0.3.0
+      with:
+        filename: .github/k6/put-holding-nochange.js
+        flags: -q
     - uses: grafana/k6-action@v0.3.0
       with:
         filename: .github/k6/put-holding.js
+        flags: -q
+    - uses: grafana/k6-action@v0.3.0
+      with:
+        filename: .github/k6/put-holding-10items.js
+        flags: -q
+    - uses: grafana/k6-action@v0.3.0
+      with:
+        filename: .github/k6/post-holdings-batch-nochange.js
+        flags: -q
+    - uses: grafana/k6-action@v0.3.0
+      with:
+        filename: .github/k6/post-holdings-batch.js
+        flags: -q
+    - uses: grafana/k6-action@v0.3.0
+      with:
+        filename: .github/k6/post-holdings-batch-10items.js
+        flags: -q
 
