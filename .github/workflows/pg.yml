@@ -1,0 +1,13 @@
+name: pg
+on:
+  workflow_dispatch:
+jobs:
+  pg:
+    runs-on: ubuntu-latest
+    steps:
+    - run: docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:12-alpine
+    - run: curl --retry 6 --retry-connrefused -sS http://localhost:5432
+    - run: >
+        psql -h localhost -p 5432 -U postgres postgres
+        -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
+        -c "CREATE DATABASE folio WITH OWNER folio"
