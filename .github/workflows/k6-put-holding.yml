@@ -3,9 +3,53 @@ on:
   workflow_dispatch:
 jobs:
   k6:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        postgres: [postgresql@15]
+      fail-fast: false
     steps:
     - run: lscpu
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: maven
+    - run: mvn clean install -DskipTests
+    - run: brew install ${{ matrix.postgres }}
+    - run: (echo "local all all trust"; echo "host all all all md5") > /usr/local/var/${{ matrix.postgres }}/pg_hba.conf
+    - run: brew services start ${{ matrix.postgres }}
+    - run: brew install zookeeper
+    - run: brew services start zookeeper
+    - run: brew install kafka
+    - run: brew services start kafka
+    - run: >
+        psql postgres
+        -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
+        -c "CREATE DATABASE folio WITH OWNER folio"
+    - run: |
+        export DB_HOST=localhost
+        export DB_PORT=5432
+        export DB_USERNAME=folio
+        export DB_PASSWORD=folio123
+        export DB_DATABASE=postgres
+        ( java -jar -Dstorage=postgres target/mod-inventory-storage-fat.jar > log ) &
+    - run: curl --retry 6 --retry-connrefused -sS http://localhost:8081/admin/health
+    - run: 'curl -sS -D -
+        -H "Content-type: application/json"
+        -H "x-okapi-url-to: http://localhost:8081"
+        -H "x-okapi-tenant: diku"
+        -d ''{ "module_to": "mod-inventory-storage-99999.0.0",
+               "parameters": [ { "key":"loadSample", "value":"true" },
+                               { "key": "loadReference", "value": "true" } ] }''
+        http://localhost:8081/_/tenant
+        | tee out'
+    - run: 'cat out | grep "^Location: " | tr : = | tr -d " \n\r" >> $GITHUB_ENV'
+    - run: echo $Location
+    - run: "curl -sS -D - -H 'x-okapi-tenant: diku' http://localhost:8081${Location}?wait=200000"
     - uses: actions/checkout@v3
       with:
         submodules: true
@@ -27,8 +71,6 @@ jobs:
         export DB_USERNAME=folio
         export DB_PASSWORD=folio123
         export DB_DATABASE=postgres
-        export KAFKA_HOST=localhost
-        export KAFKA_PORT=9092
         ( java -jar -Dstorage=postgres target/mod-inventory-storage-fat.jar > log ) &
     - run: curl --retry 6 --retry-connrefused -sS http://localhost:8081/admin/health
     - run: 'curl -sS -D -
@@ -43,28 +85,10 @@ jobs:
     - run: 'cat out | grep "^Location: " | tr : = | tr -d " \n\r" >> $GITHUB_ENV'
     - run: echo $Location
     - run: "curl -sS -D - -H 'x-okapi-tenant: diku' http://localhost:8081${Location}?wait=200000"
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/put-holding-nochange.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/put-holding.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/put-holding-10items.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/post-holdings-batch-nochange.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/post-holdings-batch.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/post-holdings-batch-10items.js
-        flags: -q
-
+    - run: brew install k6
+    - run: k6 run -q .github/k6/put-holding-nochange.js
+    - run: k6 run -q .github/k6/put-holding.js
+    - run: k6 run -q .github/k6/put-holding-10items.js
+    - run: k6 run -q .github/k6/post-holdings-batch-nochange.js
+    - run: k6 run -q .github/k6/post-holdings-batch.js
+    - run: k6 run -q .github/k6/post-holdings-batch-10items.js
