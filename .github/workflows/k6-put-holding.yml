@@ -50,6 +50,8 @@ jobs:
     - run: echo $Location
     - run: "curl -sS -D - -H 'x-okapi-tenant: diku' http://localhost:8081${Location}?wait=200000"
     - run: brew install k6
+    - name: warmup
+      run: k6 run -q .github/k6/put-holding-nochange.js
     - run: k6 run -q .github/k6/put-holding-nochange.js
     - run: k6 run -q .github/k6/put-holding.js
     - run: k6 run -q .github/k6/put-holding-10items.js
