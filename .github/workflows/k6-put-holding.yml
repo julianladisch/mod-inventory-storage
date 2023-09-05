@@ -26,7 +26,8 @@ jobs:
         psql postgres
         -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
         -c "CREATE DATABASE folio WITH OWNER folio"
-    - run: |
+    - name: run mod-inventory-storage-fat.jar
+      run: |
         export DB_HOST=localhost
         export DB_PORT=5432
         export DB_USERNAME=folio
