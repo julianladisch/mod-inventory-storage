@@ -4,6 +4,8 @@ on:
 jobs:
   k6:
     runs-on: macos-latest
+    env:
+      POSTGRES: postgresql@15
     steps:
     - run: sysctl -a | grep machdep.cpu.brand_string
     - uses: actions/checkout@v3
@@ -15,9 +17,9 @@ jobs:
         java-version: '17'
         cache: maven
     - run: mvn clean install -DskipTests
-    - run: brew install postgresql@15
-    - run: (echo "local all all trust"; echo "host all all all md5") > /usr/local/var/postgresql@15/pg_hba.conf
-    - run: brew services start postgresql@15
+    - run: brew install $POSTGRES
+    - run: (echo "local all all trust"; echo "host all all all md5") > /usr/local/var/$POSTGRES/pg_hba.conf
+    - run: brew services start $POSTGRES
     - run: brew install zookeeper
     - run: brew services start zookeeper
     - run: brew install kafka
