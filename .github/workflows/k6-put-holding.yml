@@ -9,7 +9,7 @@ jobs:
         postgres: [postgresql@15]
       fail-fast: false
     steps:
-    - run: lscpu
+    - run: sysctl -a | grep machdep.cpu
     - uses: actions/checkout@v3
       with:
         submodules: true
