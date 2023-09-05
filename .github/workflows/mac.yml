@@ -25,15 +25,15 @@ jobs:
     - run: brew services start zookeeper
     - run: brew install kafka
     - run: brew services start kafka
-    - run: >
-        psql postgres
-        -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
-        -c "CREATE DATABASE folio WITH OWNER folio"
+#    - run: >
+#        psql postgres
+#        -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
+#        -c "CREATE DATABASE folio WITH OWNER folio"
     - run: |
         export DB_HOST=localhost
         export DB_PORT=5432
-        export DB_USERNAME=folio
-        export DB_PASSWORD=folio123
+        export DB_USERNAME=postgres
+        export DB_PASSWORD=postgres
         export DB_DATABASE=postgres
         ( java -jar -Dstorage=postgres target/mod-inventory-storage-fat.jar > log ) &
     - run: curl --retry 6 --retry-connrefused -sS http://localhost:8081/admin/health
