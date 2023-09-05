@@ -1,11 +1,13 @@
-name: k6 put holding sql
+name: k6 put holding
 on:
   workflow_dispatch:
 jobs:
   k6:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
+    env:
+      POSTGRES: postgresql@15
     steps:
-    - run: lscpu
+    - run: sysctl -a | grep machdep.cpu.brand_string
     - uses: actions/checkout@v3
       with:
         submodules: true
@@ -15,20 +17,24 @@ jobs:
         java-version: '17'
         cache: maven
     - run: mvn clean install -DskipTests
-    - run: docker run -d -e POSTGRES_PASSWORD=postgres -p 5432:5432 docker.io/postgres:12-alpine
-    - run: docker run -d -p9092:9092 -p29092:29092 docker.io/confluentinc/confluent-local
+    - run: brew install $POSTGRES
+    - run: (echo "local all all trust"; echo "host all all all md5") > /usr/local/var/$POSTGRES/pg_hba.conf
+    - run: brew services start $POSTGRES
+    - run: brew install zookeeper
+    - run: brew services start zookeeper
+    - run: brew install kafka
+    - run: brew services start kafka
     - run: >
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres postgres
+        psql postgres
         -c "CREATE ROLE folio WITH PASSWORD 'folio123' LOGIN SUPERUSER"
         -c "CREATE DATABASE folio WITH OWNER folio"
-    - run: |
+    - name: run mod-inventory-storage-fat.jar
+      run: |
         export DB_HOST=localhost
         export DB_PORT=5432
         export DB_USERNAME=folio
         export DB_PASSWORD=folio123
         export DB_DATABASE=postgres
-        export KAFKA_HOST=localhost
-        export KAFKA_PORT=9092
         ( java -jar -Dstorage=postgres target/mod-inventory-storage-fat.jar > log ) &
     - run: curl --retry 6 --retry-connrefused -sS http://localhost:8081/admin/health
     - run: 'curl -sS -D -
@@ -43,28 +49,12 @@ jobs:
     - run: 'cat out | grep "^Location: " | tr : = | tr -d " \n\r" >> $GITHUB_ENV'
     - run: echo $Location
     - run: "curl -sS -D - -H 'x-okapi-tenant: diku' http://localhost:8081${Location}?wait=200000"
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/put-holding-nochange.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/put-holding.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/put-holding-10items.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/post-holdings-batch-nochange.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/post-holdings-batch.js
-        flags: -q
-    - uses: grafana/k6-action@v0.3.0
-      with:
-        filename: .github/k6/post-holdings-batch-10items.js
-        flags: -q
-
+    - run: brew install k6
+    - name: warmup
+      run: k6 run -q .github/k6/put-holding-nochange.js
+    - run: k6 run -q .github/k6/put-holding-nochange.js
+    - run: k6 run -q .github/k6/put-holding.js
+    - run: k6 run -q .github/k6/put-holding-10items.js
+    - run: k6 run -q .github/k6/post-holdings-batch-nochange.js
+    - run: k6 run -q .github/k6/post-holdings-batch.js
+    - run: k6 run -q .github/k6/post-holdings-batch-10items.js
