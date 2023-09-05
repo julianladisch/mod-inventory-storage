@@ -4,10 +4,6 @@ on:
 jobs:
   k6:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        postgres: [postgresql@15]
-      fail-fast: false
     steps:
     - run: sysctl -a | grep machdep.cpu
     - uses: actions/checkout@v3
@@ -19,9 +15,9 @@ jobs:
         java-version: '17'
         cache: maven
     - run: mvn clean install -DskipTests
-    - run: brew install ${{ matrix.postgres }}
-    - run: (echo "local all all trust"; echo "host all all all md5") > /usr/local/var/${{ matrix.postgres }}/pg_hba.conf
-    - run: brew services start ${{ matrix.postgres }}
+    - run: brew install postgresql@15
+    - run: (echo "local all all trust"; echo "host all all all md5") > /usr/local/var/postgresql@15/pg_hba.conf
+    - run: brew services start postgresql@15
     - run: brew install zookeeper
     - run: brew services start zookeeper
     - run: brew install kafka
