@@ -13,6 +13,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -43,6 +44,8 @@ public class InstallUpgradeIT {
   private static final Logger LOG = LoggerFactory.getLogger(InstallUpgradeIT.class);
   private static final boolean IS_LOG_ENABLED = false;
   private static final Network NETWORK = Network.newNetwork();
+  private static final DockerImageName POSTGRES_IMAGE_NAME = DockerImageName.parse(
+      StringUtils.defaultString(System.getenv("TESTCONTAINERS_POSTGRES"), "postgres:12-alpine"));
 
   @ClassRule(order = 0)
   public static final KafkaContainer KAFKA =
@@ -52,7 +55,7 @@ public class InstallUpgradeIT {
 
   @ClassRule(order = 1)
   public static final PostgreSQLContainer<?> POSTGRES =
-    new PostgreSQLContainer<>("postgres:12-alpine")
+    new PostgreSQLContainer<>(POSTGRES_IMAGE_NAME)
       .withClasspathResourceMapping("lotus-23.0.0.sql", "/lotus-23.0.0.sql", BindMode.READ_ONLY)
       .withNetwork(NETWORK)
       .withNetworkAliases("mypostgres")
