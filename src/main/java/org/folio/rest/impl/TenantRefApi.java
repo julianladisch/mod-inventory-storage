@@ -28,6 +28,7 @@ import org.folio.rest.annotations.Validate;
 import org.folio.rest.jaxrs.model.TenantAttributes;
 import org.folio.rest.tools.utils.TenantLoading;
 import org.folio.services.migration.BaseMigrationService;
+import org.folio.services.migration.holding.HoldingSourceIdMigrationService;
 import org.folio.services.migration.item.ItemShelvingOrderMigrationService;
 
 public class TenantRefApi extends TenantAPI {
@@ -178,7 +179,8 @@ public class TenantRefApi extends TenantAPI {
     log.info("About to start java migrations...");
 
     List<BaseMigrationService> javaMigrations = List.of(
-      new ItemShelvingOrderMigrationService(context, okapiHeaders));
+      new ItemShelvingOrderMigrationService(context, okapiHeaders),
+      new HoldingSourceIdMigrationService(context, okapiHeaders));
 
     var startedMigrations = javaMigrations.stream()
       .filter(javaMigration -> javaMigration.shouldExecuteMigration(ta))

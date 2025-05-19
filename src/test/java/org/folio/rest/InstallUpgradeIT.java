@@ -53,7 +53,7 @@ import org.testcontainers.kafka.KafkaContainer;
  */
 public class InstallUpgradeIT {
   /** set true for debugging. */
-  public static final boolean IS_LOG_ENABLED = false;
+  public static final boolean IS_LOG_ENABLED = true;
 
   public static final Network NETWORK = Network.newNetwork();
 
@@ -61,16 +61,17 @@ public class InstallUpgradeIT {
   public static final KafkaContainer KAFKA =
     new KafkaContainer(KafkaUtility.getImageName())
       .withNetwork(NETWORK)
-      .withNetworkAliases("mykafka");
+      .withListener("mykafka:19092")
+      .withStartupAttempts(3);
 
   @ClassRule(order = 1)
   public static final PostgreSQLContainer<?> POSTGRES =
     new PostgreSQLContainer<>("postgres:16-alpine")
-      .withClasspathResourceMapping("lotus-23.0.0.sql", "/lotus-23.0.0.sql", BindMode.READ_ONLY)
+      .withClasspathResourceMapping("quesnelia-27.1.4.sql", "/quesnelia-27.1.4.sql", BindMode.READ_ONLY)
       .withNetwork(NETWORK)
       .withNetworkAliases("mypostgres")
       .withExposedPorts(5432)
-      .withUsername("username")
+      .withUsername("postgres")
       .withPassword("password")
       .withDatabaseName("postgres");
 
@@ -89,11 +90,11 @@ public class InstallUpgradeIT {
       .withAccessToHost(true)
       .withEnv("DB_HOST", "mypostgres")
       .withEnv("DB_PORT", "5432")
-      .withEnv("DB_USERNAME", "username")
+      .withEnv("DB_USERNAME", "postgres")
       .withEnv("DB_PASSWORD", "password")
       .withEnv("DB_DATABASE", "postgres")
       .withEnv("KAFKA_HOST", "mykafka")
-      .withEnv("KAFKA_PORT", "9092");
+      .withEnv("KAFKA_PORT", "19092");
 
   private static final Logger LOG = LoggerFactory.getLogger(InstallUpgradeIT.class);
   private static final String USER_TENANTS_PATH = "/user-tenants?limit=1";
@@ -106,7 +107,7 @@ public class InstallUpgradeIT {
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     RestAssured.baseURI = "http://" + MOD_MIS.getHost() + ":" + MOD_MIS.getFirstMappedPort();
     if (IS_LOG_ENABLED) {
-      KAFKA.followOutput(new Slf4jLogConsumer(LOG).withSeparateOutputStreams().withPrefix("Kafka"));
+      //KAFKA.followOutput(new Slf4jLogConsumer(LOG).withSeparateOutputStreams().withPrefix("Kafka"));
       POSTGRES.followOutput(new Slf4jLogConsumer(LOG).withSeparateOutputStreams().withPrefix("Postgres"));
       MOD_MIS.followOutput(new Slf4jLogConsumer(LOG).withSeparateOutputStreams().withPrefix("mis"));
     }
@@ -161,6 +162,42 @@ public class InstallUpgradeIT {
 
     smokeTest();
   }
+
+  @Test
+  public void upgradeFromQuesnelia() {
+    // load database dump of Quesnelia (R1-2024-GA) version of mod-inventory-storage
+    postgresExec("psql", "-U", POSTGRES.getUsername(), "-d", POSTGRES.getDatabaseName(),
+      "-f", "quesnelia-27.1.4.sql");
+
+    setTenant("quesnelia");
+
+    // migrate
+    postTenant(new JsonObject()
+      .put("module_from", "27.1.4")
+      .put("module_to", "999999.0.0")
+      .put("parameters", new JsonArray()
+        .add(new JsonObject().put("key", "loadReference").put("value", "true"))
+        .add(new JsonObject().put("key", "loadSample").put("value", "true"))));
+
+    smokeTest();
+
+    // check populateHoldingsSourceId.sql
+
+    // MARC sourceId of two holdings connected with mod-source-record-storage
+    when()
+      .get("/holdings-storage/holdings?query=sourceId=036ee84a-6afd-4c3c-9ad3-4a12ab875f59")
+      .then()
+      .statusCode(200)
+      .body("holdingsRecords.size()", is(3));
+
+    // sourceId is set for all records
+    when()
+      .get("/holdings-storage/holdings?query=cql.allRecords=1 NOT sourceId=\"\"")
+      .then()
+      .statusCode(200)
+      .body("holdingsRecords.size()", is(0));
+  }
+
 
   /**
    * Test logging. It broke several times caused by dependency order in pom.xml or by configuration:

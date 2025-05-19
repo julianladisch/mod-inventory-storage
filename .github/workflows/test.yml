@@ -1,0 +1,21 @@
+name: test
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    - run: mvn -B clean install
+    - run: cat target/surefire-reports/*.txt
+      if: ${{ always() }}
+    - run: cat target/failsafe-reports/*.txt
+      if: ${{ always() }}

@@ -3,6 +3,7 @@ package org.folio.services.migration;
 public enum MigrationName {
   PUBLICATION_PERIOD_MIGRATION("publicationPeriodMigration"),
   SUBJECT_SERIES_MIGRATION("subjectSeriesMigration"),
+  HOLDING_SOURCE_ID_MIGRATION("holdingsSourceIdMigration"),
   ITEM_SHELVING_ORDER_MIGRATION("itemShelvingOrderMigration");
 
   private final String value;
