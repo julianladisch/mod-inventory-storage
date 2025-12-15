@@ -12,7 +12,7 @@ jobs:
         submodules: true
     - uses: actions/setup-java@v5
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
         cache: maven
-    - run: mvn -B clean install -DskipTests
+    - run: mvn -B clean install
