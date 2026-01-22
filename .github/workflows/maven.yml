@@ -1,0 +1,19 @@
+name: maven
+on:
+  workflow_dispatch:
+jobs:
+  maven:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: true
+    - uses: actions/setup-java@v5
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+    - run: mvn -B clean install | tee out
+    - run: tail -10000 out
