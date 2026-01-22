@@ -9,6 +9,15 @@
 
   <artifactId>mod-inventory-storage-server</artifactId>
 
+  <properties>
+    <!-- 3 tests of ItemStorageTest fail when run with de (= German) locale because
+         of translated error messages.
+         https://stackoverflow.com/questions/23190107/cannot-use-jacoco-jvm-args-and-surefire-jvm-args-together-in-maven
+         https://github.com/eclipse-m2e/m2e-core/issues/1824
+    -->
+    <argLine>-Duser.language=en -Duser.region=US</argLine>
+  </properties>
+  
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -454,11 +463,6 @@
             <include>org/folio/rest/api/StorageTestSuite.java</include>
             <include>**/*Test.java</include>
           </includes>
-          <!-- 3 tests of ItemStorageTest fail when run with de (= German) locale because
-               of translated error messages.
-               https://stackoverflow.com/questions/23190107/cannot-use-jacoco-jvm-args-and-surefire-jvm-args-together-in-maven
-          -->
-          <argLine>-Duser.language=en -Duser.region=US @{argLine}</argLine>
         </configuration>
       </plugin>
 
